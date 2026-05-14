@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { Point } from '../types';
 import { worldToCanvas, CanvasTransform } from '../utils/canvasUtils';
 
@@ -10,15 +10,17 @@ interface FractalCanvasProps {
   showCurrentPoint?: boolean;
 }
 
-export const FractalCanvas = ({
+export const FractalCanvas = forwardRef<HTMLCanvasElement, FractalCanvasProps>(({
   points,
   currentPoint,
   transform,
   color,
   showCurrentPoint = true,
-}: FractalCanvasProps) => {
+}, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | null>(null);
+
+  useImperativeHandle(ref, () => canvasRef.current as HTMLCanvasElement);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -92,4 +94,4 @@ export const FractalCanvas = ({
       }}
     />
   );
-};
+});

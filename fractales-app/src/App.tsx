@@ -1,11 +1,12 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { FractalCanvas } from './components/FractalCanvas';
 import { Controls } from './components/Controls';
+import { FractalComparator } from './components/FractalComparator';
 import { useIFSAnimation } from './hooks/useIFSAnimation';
 import { useCanvasTransform } from './hooks/useCanvasTransform';
 import { getFractal, getFractalNames } from './data/fractals';
 import { FractalConfig, Point } from './types';
-import { getDefaultTransform } from './utils/canvasUtils';
+import { getDefaultTransform, CanvasTransform } from './utils/canvasUtils';
 
 const batchSizeDefault = 100;
 const maxIterationsDefault = 10000;
@@ -16,13 +17,16 @@ export const App = () => {
   const [selectedFractal, setSelectedFractal] = useState<string>('fern');
   const [fractalConfig, setFractalConfig] = useState<FractalConfig>(() => getFractal('fern')!);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showCompare, setShowCompare] = useState(false);
   const [batchSize, setBatchSize] = useState(batchSizeDefault);
   const [maxIterations, setMaxIterations] = useState(maxIterationsDefault);
+  const [compareFractal, setCompareFractal] = useState('sierpinski');
 
   const fractalNames = getFractalNames();
   const canvasTransform = useCanvasTransform({
     initialTransform: canvasTransformInit(selectedFractal),
   });
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const {
     points,
@@ -72,6 +76,12 @@ export const App = () => {
     setFractalConfig(prev => ({ ...prev, initialPoint: point }));
   }, []);
 
+  const compareConfig = getFractal(compareFractal) || getFractal('sierpinski')!;
+
+  const handleToggleCompare = useCallback((show: boolean) => {
+    setShowCompare(show);
+  }, []);
+
   return (
     <div style={appStyle}>
       <Controls
@@ -96,10 +106,15 @@ export const App = () => {
         onResetView={canvasTransform.resetTransform}
         showAdvanced={showAdvanced}
         onToggleAdvanced={() => setShowAdvanced(!showAdvanced)}
+        points={points}
+        transform={canvasTransform.transform}
+        showCompare={showCompare}
+        onToggleCompare={(show) => setShowCompare(show)}
       />
 
       <div style={canvasContainerStyle}>
         <FractalCanvas
+          ref={canvasRef}
           points={points}
           currentPoint={currentPoint}
           transform={canvasTransform.transform}
@@ -112,6 +127,15 @@ export const App = () => {
           <span> • </span>
           <span>Iteración: {iteration.toLocaleString()}</span>
         </div>
+
+        {showCompare && (
+          <FractalComparator
+            configA={fractalConfig}
+            configB={compareConfig}
+            pointsCount={Math.min(points.length, 3000)}
+            onClose={() => setShowCompare(false)}
+          />
+        )}
       </div>
     </div>
   );
