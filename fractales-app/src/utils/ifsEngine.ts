@@ -118,3 +118,44 @@ export const findFixedPoint = (
 
   return { x, y };
 };
+
+export const estimateBounds = (
+  transforms: AffineTransform[],
+  initialPoint: Point,
+  numSamples: number = 20000
+): { minX: number; maxX: number; minY: number; maxY: number } => {
+  let x = initialPoint.x;
+  let y = initialPoint.y;
+
+  // El fractor es independiente del punto de partida
+  
+  for (let i = 0; i < 200; i++) {
+    const t = selectTransform(transforms);
+    const nx = t.a * x + t.b * y + t.e;
+    const ny = t.c * x + t.d * y + t.f;
+    x = nx; y = ny;
+  }
+
+  // Now on the attractor — seed bounds from current position
+  let minX = x, maxX = x, minY = y, maxY = y;
+
+  for (let i = 0; i < numSamples; i++) {
+    const t = selectTransform(transforms);
+    const nx = t.a * x + t.b * y + t.e;
+    const ny = t.c * x + t.d * y + t.f;
+    x = nx; y = ny;
+    if (nx < minX) minX = nx;
+    if (nx > maxX) maxX = nx;
+    if (ny < minY) minY = ny;
+    if (ny > maxY) maxY = ny;
+  }
+
+  const padX = (maxX - minX) * 0.1 || 0.5;
+  const padY = (maxY - minY) * 0.1 || 0.5;
+  return {
+    minX: minX - padX,
+    maxX: maxX + padX,
+    minY: minY - padY,
+    maxY: maxY + padY,
+  };
+};

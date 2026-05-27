@@ -3,7 +3,6 @@ import { FractalConfig, Point, AffineTransform } from '../types';
 import { storageService, SavedConfig } from '../services/storage';
 import { exportService } from '../services/export';
 import { statisticsService, FractalStats } from '../services/statistics';
-import { getPresetNames, getPreset, getAllPresets } from '../data/presets';
 import { useHistory } from '../hooks/useHistory';
 import { getDefaultTransform, CanvasTransform } from '../utils/canvasUtils';
 
@@ -21,7 +20,7 @@ interface AdvancedPanelProps {
   canRedo?: boolean;
 }
 
-type TabType = 'save' | 'export' | 'stats' | 'presets' | 'compare';
+type TabType = 'save' | 'export' | 'stats' | 'compare';
 
 const initialTransformUsage = (transforms: AffineTransform[]): number[] =>
   transforms.map(() => 0);
@@ -118,13 +117,13 @@ export const AdvancedPanel = ({
     }
   }, []);
 
-  const handleSelectPreset = (name: string) => {
-    const preset = getPreset(name);
-    if (preset) {
-      onFractalChange(preset);
-      history.setState(preset);
-    }
-  };
+  // const handleSelectPreset = (name: string) => {
+  //   const preset = getPreset(name);
+  //   if (preset) {
+  //     onFractalChange(preset);
+  //     history.setState(preset);
+  //   }
+  // };
 
   const handleSavePreset = () => {
     const name = prompt('Nombre del preset:');
@@ -145,25 +144,32 @@ export const AdvancedPanel = ({
     onRedo?.();
   };
 
-  const presetNames = getPresetNames();
-  const builtinPresets = getAllPresets();
+
 
   return (
     <div style={containerStyle}>
       <div style={tabsContainerStyle}>
-        {(['save', 'export', 'stats', 'presets', 'compare'] as TabType[]).map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            style={{
-              ...tabButtonStyle,
-              ...(activeTab === tab ? activeTabStyle : {}),
-            }}
-          >
-            {tab === 'save' ? '💾' : tab === 'export' ? '🖼️' : tab === 'stats' ? '📊' : tab === 'presets' ? '🎨' : '🆚'}
-          </button>
-        ))}
-      </div>
+  {(['save', 'export', 'stats', 'compare'] as TabType[]).map(tab => (
+    <button
+      key={tab}
+      onClick={() => setActiveTab(tab)}
+      style={{
+        ...tabButtonStyle,
+        ...(activeTab === tab ? activeTabStyle : {}),
+      }}
+    >
+      {
+        tab === 'save'
+          ? '💾'
+          : tab === 'export'
+          ? '🖼️'
+          : tab === 'stats'
+          ? '📊'
+          : '🆚'
+      }
+    </button>
+  ))}
+</div>
 
       <div style={panelContentStyle}>
         {activeTab === 'save' && (
@@ -290,28 +296,6 @@ export const AdvancedPanel = ({
           </div>
         )}
 
-        {activeTab === 'presets' && (
-          <div>
-            <h3 style={sectionTitleStyle}>Presets Avanzados</h3>
-
-            <div style={presetGridStyle}>
-              {builtinPresets.map((preset, i) => (
-                <button
-                  key={i}
-                  onClick={() => handleSelectPreset(preset.name)}
-                  style={presetButtonStyle}
-                >
-                  <span style={presetNameStyle}>{preset.name}</span>
-                  <span style={presetDescStyle}>{preset.description.substring(0, 30)}...</span>
-                </button>
-              ))}
-            </div>
-
-            <button onClick={handleSavePreset} style={savePresetButtonStyle}>
-              ➕ Guardar preset actual
-            </button>
-          </div>
-        )}
 
         {activeTab === 'compare' && (
           <div>

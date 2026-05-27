@@ -7,11 +7,10 @@ interface UseIFSAnimationOptions {
   initialPoint: Point;
   batchSize: number;
   maxIterations: number;
+  onBatch?: (newPoints: Point[], totalIteration: number) => void;
 }
 
 interface UseIFSAnimationReturn {
-  points: Point[];
-  currentPoint: Point;
   iteration: number;
   isRunning: boolean;
   start: () => void;
@@ -19,6 +18,7 @@ interface UseIFSAnimationReturn {
   reset: () => void;
   setBatchSize: (size: number) => void;
   setMaxIterations: (max: number) => void;
+  progress: number;
 }
 
 export const useIFSAnimation = ({
@@ -26,89 +26,107 @@ export const useIFSAnimation = ({
   initialPoint,
   batchSize: initialBatchSize,
   maxIterations: initialMaxIterations,
+  onBatch,
 }: UseIFSAnimationOptions): UseIFSAnimationReturn => {
-  const [points, setPoints] = useState<Point[]>([]);
-  const [currentPoint, setCurrentPoint] = useState<Point>(initialPoint);
   const [iteration, setIteration] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
-  const [currentBatchSize, setCurrentBatchSize] = useState(initialBatchSize);
-  const [maxIterations, setMaxIterations] = useState(initialMaxIterations);
+  const [progress, setProgress] = useState(0);
 
+  const iterRef = useRef(0);
+  const runningRef = useRef(false);
+  const maxRef = useRef(initialMaxIterations);
+  const batchRef = useRef(initialBatchSize);
+  const pointRef = useRef<Point>({ ...initialPoint });
   const transformsRef = useRef(transforms);
-  const initialPointRef = useRef(initialPoint);
-  const animationRef = useRef<number | null>(null);
-  const lastPointRef = useRef<Point>(initialPoint);
+  const initialRef = useRef(initialPoint);
+  const rafRef = useRef<number | null>(null);
+  const onBatchRef = useRef(onBatch);
 
-  useEffect(() => {
-    transformsRef.current = transforms;
-  }, [transforms]);
+  useEffect(() => { transformsRef.current = transforms; }, [transforms]);
+  useEffect(() => { initialRef.current = initialPoint; }, [initialPoint]);
+  useEffect(() => { onBatchRef.current = onBatch; }, [onBatch]);
+  useEffect(() => { maxRef.current = initialMaxIterations; }, [initialMaxIterations]);
+  useEffect(() => { batchRef.current = initialBatchSize; }, [initialBatchSize]);
 
-  useEffect(() => {
-    initialPointRef.current = initialPoint;
-  }, [initialPoint]);
+  const loop = useCallback(() => {
+    if (!runningRef.current) return;
 
-  const reset = useCallback(() => {
-    setPoints([]);
-    setCurrentPoint(initialPointRef.current);
-    setIteration(0);
-    lastPointRef.current = initialPointRef.current;
-    setIsRunning(false);
-  }, []);
-
-  const start = useCallback(() => {
-    setIsRunning(true);
-  }, []);
-
-  const pause = useCallback(() => {
-    setIsRunning(false);
-  }, []);
-
-  const generateBatch = useCallback(() => {
-    if (iteration >= maxIterations) {
+    const remaining = maxRef.current - iterRef.current;
+    if (remaining <= 0) {
+      runningRef.current = false;
       setIsRunning(false);
       return;
     }
 
-    const remaining = maxIterations - iteration;
-    const size = Math.min(currentBatchSize, remaining);
+    const size = Math.min(batchRef.current, remaining);
+    const result = generatePointsBatch(transformsRef.current, pointRef.current, size, 0);
 
-    const result = generatePointsBatch(
-      transformsRef.current,
-      lastPointRef.current,
-      size,
-      0
-    );
+    pointRef.current = result.newInitialPoint;
+    iterRef.current += size;
 
-    lastPointRef.current = result.newInitialPoint;
-    setCurrentPoint(result.newInitialPoint);
+    setIteration(iterRef.current);
+    setProgress((iterRef.current / maxRef.current) * 100);
 
-    setPoints(prev => [...prev, ...result.points]);
-    setIteration(prev => prev + size);
-  }, [transforms, iteration, maxIterations, currentBatchSize]);
-
-  useEffect(() => {
-    if (isRunning && iteration < maxIterations) {
-      animationRef.current = requestAnimationFrame(() => {
-        generateBatch();
-      });
+    if (result.points.length > 0) {
+      onBatchRef.current?.(result.points, iterRef.current);
     }
 
+    if (iterRef.current < maxRef.current && runningRef.current) {
+      rafRef.current = requestAnimationFrame(loop);
+    } else {
+      runningRef.current = false;
+      setIsRunning(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isRunning) {
+      rafRef.current = requestAnimationFrame(loop);
+    }
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
       }
     };
-  }, [isRunning, generateBatch, iteration, maxIterations]);
+  }, [isRunning, loop]);
+
+  const start = useCallback(() => {
+    runningRef.current = true;
+    setIsRunning(true);
+  }, []);
+
+  const pause = useCallback(() => {
+    runningRef.current = false;
+    setIsRunning(false);
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+  }, []);
+
+  const reset = useCallback(() => {
+    runningRef.current = false;
+    setIsRunning(false);
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    iterRef.current = 0;
+    pointRef.current = { ...initialRef.current };
+    setIteration(0);
+    setProgress(0);
+    onBatchRef.current?.([], 0);
+  }, []);
 
   return {
-    points,
-    currentPoint,
     iteration,
     isRunning,
     start,
     pause,
     reset,
-    setBatchSize: setCurrentBatchSize,
-    setMaxIterations,
+    setBatchSize: (s) => { batchRef.current = s; },
+    setMaxIterations: (m) => { maxRef.current = m; },
+    progress,
   };
 };

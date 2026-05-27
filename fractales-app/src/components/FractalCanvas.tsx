@@ -1,97 +1,337 @@
 import { useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { Point } from '../types';
-import { worldToCanvas, CanvasTransform } from '../utils/canvasUtils';
 
-interface FractalCanvasProps {
-  points: Point[];
-  currentPoint: Point;
-  transform: CanvasTransform;
-  color: string;
-  showCurrentPoint?: boolean;
+export interface FractalCanvasHandle {
+  addPoints: (pts: Point[]) => void;
+  setCurrentPoint: (p: Point) => void;
+  reset: () => void;
+  setScale: (s: number) => void;
+  setOffset: (x: number, y: number) => void;
+  initializeTransform: (s: number, x: number, y: number) => void;
+  getPointsCount: () => number;
+  getCanvasElement: () => HTMLCanvasElement | null;
 }
 
-export const FractalCanvas = forwardRef<HTMLCanvasElement, FractalCanvasProps>(({
-  points,
-  currentPoint,
-  transform,
+interface Props {
+  color: string;
+  showCursor?: boolean;
+  onZoom?: (delta: number, cx: number, cy: number) => void;
+  bgColor?: string;
+  gridColor?: string;
+  gridOpacity?: number;
+  gridEnabled?: boolean;
+  axesColor?: string;
+  glowEnabled?: boolean;
+  glowIntensity?: number;
+}
+
+const MAX_VISIBLE = 80000;
+const MAX_STORED = 120000;
+
+const hexToRgb = (h: string) => {
+  const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
+  return r ? { r: parseInt(r[1], 16), g: parseInt(r[2], 16), b: parseInt(r[3], 16) }
+           : { r: 45, g: 212, b: 191 };
+};
+
+function drawBackground(ctx: CanvasRenderingContext2D, W: number, H: number, bgColor: string) {
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function drawGrid(
+  ctx: CanvasRenderingContext2D,
+  W: number, H: number,
+  s: number, ox: number, oy: number,
+  gridColor: string, gridOpacity: number
+) {
+  const worldW = W / s;
+  const rawStep = worldW / 20;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const residual = rawStep / magnitude;
+  let nice: number;
+  if (residual < 1.5) nice = 1;
+  else if (residual < 3.5) nice = 2;
+  else if (residual < 7.5) nice = 5;
+  else nice = 10;
+  const stepWorld = nice * magnitude;
+
+  const gLeft = Math.floor((-W / 2 - ox) / stepWorld);
+  const gRight = Math.ceil((W / 2 - ox) / stepWorld);
+  const gTop = Math.floor((-H / 2 - oy) / stepWorld);
+  const gBot = Math.ceil((H / 2 - oy) / stepWorld);
+
+  const gc = hexToRgb(gridColor);
+  ctx.strokeStyle = `rgba(${gc.r},${gc.g},${gc.b},${gridOpacity})`;
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  for (let i = gLeft; i <= gRight; i++) {
+    const x = W / 2 + ox + i * stepWorld * s;
+    if (x >= 0 && x <= W) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+  }
+  for (let i = gTop; i <= gBot; i++) {
+    const y = H / 2 + oy - i * stepWorld * s;
+    if (y >= 0 && y <= H) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+  }
+  ctx.stroke();
+}
+
+function drawAxes(
+  ctx: CanvasRenderingContext2D,
+  W: number, H: number,
+  ox: number, oy: number,
+  axesColor: string
+) {
+  const ax = W / 2 + ox;
+  const ay = H / 2 + oy;
+  const ac = hexToRgb(axesColor);
+  ctx.strokeStyle = `rgba(${ac.r},${ac.g},${ac.b},0.25)`;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(0, ay); ctx.lineTo(W, ay);
+  ctx.moveTo(ax, 0); ctx.lineTo(ax, H);
+  ctx.stroke();
+}
+
+function drawPoints(
+  ctx: CanvasRenderingContext2D,
+  W: number, H: number,
+  s: number, ox: number, oy: number,
+  pts: Point[], total: number,
+  color: string
+) {
+  const rgb = hexToRgb(color);
+  const stride = Math.ceil(total / MAX_VISIBLE);
+  for (let i = 0; i < total; i += stride) {
+    const px = pts[i].x;
+    const py = pts[i].y;
+    const cx = W / 2 + ox + px * s;
+    const cy = H / 2 + oy - py * s;
+    const intensity = 0.6 + (i / total) * 0.4;
+    ctx.fillStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},${Math.min(1, intensity)})`;
+    ctx.fillRect(cx, cy, 2, 2);
+  }
+}
+
+function drawGlow(
+  ctx: CanvasRenderingContext2D,
+  W: number, H: number,
+  s: number, ox: number, oy: number,
+  pts: Point[], total: number,
+  color: string, glowIntensity: number
+) {
+  const stride = Math.ceil(total / MAX_VISIBLE);
+  const drawnCount = Math.ceil(total / stride);
+  const glowStart = Math.max(0, drawnCount - 500);
+  const rgb = hexToRgb(color);
+  const gi = glowIntensity;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.shadowColor = `rgba(${rgb.r},${rgb.g},${rgb.b},${gi})`;
+  ctx.shadowBlur = 4;
+  let drawIdx = 0;
+  for (let i = 0; i < total; i += stride) {
+    if (drawIdx >= glowStart) {
+      const px = pts[i].x;
+      const py = pts[i].y;
+      const cx = W / 2 + ox + px * s;
+      const cy = H / 2 + oy - py * s;
+      ctx.fillStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},${Math.min(1, gi + 0.1)})`;
+      ctx.fillRect(cx, cy, 2.5, 2.5);
+    }
+    drawIdx++;
+  }
+  ctx.restore();
+}
+
+function drawCursor(
+  ctx: CanvasRenderingContext2D,
+  W: number, H: number,
+  s: number, ox: number, oy: number,
+  cursorPt: Point,
+  color: string
+) {
+  const cx = W / 2 + ox + cursorPt.x * s;
+  const cy = H / 2 + oy - cursorPt.y * s;
+  ctx.save();
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 18;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(cx, cy, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+export const FractalCanvas = forwardRef<FractalCanvasHandle, Props>(({
   color,
-  showCurrentPoint = true,
+  showCursor = true,
+  onZoom,
+  bgColor = '#0a0e1a',
+  gridColor = '#1e293b',
+  gridOpacity = 0.25,
+  gridEnabled = true,
+  axesColor = '#2dd4bf',
+  glowEnabled = true,
+  glowIntensity = 0.4,
 }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationFrameRef = useRef<number | null>(null);
+  const ptsRef = useRef<Point[]>([]);
+  const cursorRef = useRef<Point>({ x: 0, y: 0 });
+  const colorRef = useRef(color);
+  const bgRef = useRef(bgColor);
+  const gridColorRef = useRef(gridColor);
+  const gridOpacityRef = useRef(gridOpacity);
+  const gridEnabledRef = useRef(gridEnabled);
+  const axesColorRef = useRef(axesColor);
+  const glowEnabledRef = useRef(glowEnabled);
+  const glowIntensityRef = useRef(glowIntensity);
+  const showRef = useRef(showCursor);
+  const dirtyRef = useRef(true);
+  const dprRef = useRef(1);
+  const frameRef = useRef(0);
 
-  useImperativeHandle(ref, () => canvasRef.current as HTMLCanvasElement);
+  const scaleRef = useRef(50);
+  const offXRef = useRef(0);
+  const offYRef = useRef(0);
+
+  useEffect(() => { colorRef.current = color; dirtyRef.current = true; }, [color]);
+  useEffect(() => { bgRef.current = bgColor; dirtyRef.current = true; }, [bgColor]);
+  useEffect(() => { gridColorRef.current = gridColor; dirtyRef.current = true; }, [gridColor]);
+  useEffect(() => { gridOpacityRef.current = gridOpacity; dirtyRef.current = true; }, [gridOpacity]);
+  useEffect(() => { gridEnabledRef.current = gridEnabled; dirtyRef.current = true; }, [gridEnabled]);
+  useEffect(() => { axesColorRef.current = axesColor; dirtyRef.current = true; }, [axesColor]);
+  useEffect(() => { glowEnabledRef.current = glowEnabled; dirtyRef.current = true; }, [glowEnabled]);
+  useEffect(() => { glowIntensityRef.current = glowIntensity; dirtyRef.current = true; }, [glowIntensity]);
+  useEffect(() => { showRef.current = showCursor; }, [showCursor]);
 
   const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
+    const cvs = canvasRef.current;
+    if (!cvs) return;
+    const ctx = cvs.getContext('2d');
     if (!ctx) return;
 
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const dpr = dprRef.current;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingEnabled = false;
 
-    ctx.strokeStyle = '#1e293b';
-    ctx.lineWidth = 1;
-    const origin = worldToCanvas({ x: 0, y: 0 }, transform);
-    ctx.beginPath();
-    ctx.moveTo(0, origin.y);
-    ctx.lineTo(canvas.width, origin.y);
-    ctx.moveTo(origin.x, 0);
-    ctx.lineTo(origin.x, canvas.height);
-    ctx.stroke();
+    const W = cvs.width / dpr;
+    const H = cvs.height / dpr;
 
-    ctx.fillStyle = color;
-    for (let i = 0; i < points.length; i++) {
-      const canvasPoint = worldToCanvas(points[i], transform);
-      ctx.fillRect(canvasPoint.x, canvasPoint.y, 1, 1);
+    const s = scaleRef.current;
+    const ox = offXRef.current;
+    const oy = offYRef.current;
+
+    drawBackground(ctx, W, H, bgRef.current);
+
+    if (gridEnabledRef.current) {
+      drawGrid(ctx, W, H, s, ox, oy, gridColorRef.current, gridOpacityRef.current);
     }
 
-    if (showCurrentPoint && points.length > 0) {
-      const canvasPoint = worldToCanvas(currentPoint, transform);
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(canvasPoint.x, canvasPoint.y, 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(canvasPoint.x, canvasPoint.y, 2, 0, Math.PI * 2);
-      ctx.fill();
+    drawAxes(ctx, W, H, ox, oy, axesColorRef.current);
+
+    const pts = ptsRef.current;
+    const total = pts.length;
+    if (total === 0) return;
+
+    drawPoints(ctx, W, H, s, ox, oy, pts, total, colorRef.current);
+
+    if (glowEnabledRef.current) {
+      drawGlow(ctx, W, H, s, ox, oy, pts, total, colorRef.current, glowIntensityRef.current);
     }
-  }, [points, currentPoint, transform, color, showCurrentPoint]);
+
+    if (showRef.current) {
+      drawCursor(ctx, W, H, s, ox, oy, cursorRef.current, colorRef.current);
+    }
+  }, []);
+
+  const renderLoop = useCallback(() => {
+    if (dirtyRef.current) {
+      draw();
+      dirtyRef.current = false;
+    }
+    frameRef.current = requestAnimationFrame(renderLoop);
+  }, [draw]);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const cvs = canvasRef.current;
+    if (!cvs) return;
 
-    const resizeCanvas = () => {
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width;
-      canvas.height = rect.height;
-      draw();
+    const resize = () => {
+      const rect = cvs.getBoundingClientRect();
+      dprRef.current = window.devicePixelRatio || 1;
+      cvs.width = rect.width * dprRef.current;
+      cvs.height = rect.height * dprRef.current;
+      dirtyRef.current = true;
     };
 
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    resize();
+    window.addEventListener('resize', resize);
+
+    frameRef.current = requestAnimationFrame(renderLoop);
 
     return () => {
-      window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener('resize', resize);
+      cancelAnimationFrame(frameRef.current);
     };
-  }, [draw]);
+  }, [renderLoop]);
 
-  useEffect(() => {
-    draw();
-  }, [draw]);
+  const wheel = useCallback((e: React.WheelEvent) => {
+    if (!onZoom) return;
+    e.preventDefault();
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (rect) {
+      const cx = e.clientX - rect.left;
+      const cy = e.clientY - rect.top;
+      onZoom(e.deltaY > 0 ? -1 : 1, cx, cy);
+    }
+  }, [onZoom]);
+
+  useImperativeHandle(ref, () => ({
+    addPoints(pts: Point[]) {
+      if (pts.length === 0) return;
+      const cur = ptsRef.current;
+      cur.push(...pts);
+      if (cur.length > MAX_STORED) {
+        cur.splice(0, cur.length - MAX_STORED);
+      }
+      dirtyRef.current = true;
+    },
+    setCurrentPoint(p: Point) {
+      cursorRef.current = p;
+      dirtyRef.current = true;
+    },
+    reset() {
+      ptsRef.current = [];
+      cursorRef.current = { x: 0, y: 0 };
+      dirtyRef.current = true;
+    },
+    setScale(s: number) {
+      scaleRef.current = s;
+      dirtyRef.current = true;
+    },
+    setOffset(x: number, y: number) {
+      offXRef.current = x;
+      offYRef.current = y;
+      dirtyRef.current = true;
+    },
+    initializeTransform(s: number, x: number, y: number) {
+      scaleRef.current = s;
+      offXRef.current = x;
+      offYRef.current = y;
+      dirtyRef.current = true;
+    },
+    getPointsCount: () => ptsRef.current.length,
+    getCanvasElement: () => canvasRef.current,
+  }));
 
   return (
     <canvas
       ref={canvasRef}
-      style={{
-        width: '100%',
-        height: '100%',
-        display: 'block',
-      }}
+      style={{ width: '100%', height: '100%', display: 'block', cursor: 'default' }}
+      onWheel={wheel}
     />
   );
 });
+
+FractalCanvas.displayName = 'FractalCanvas';

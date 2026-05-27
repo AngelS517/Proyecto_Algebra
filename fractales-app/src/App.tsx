@@ -1,17 +1,33 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { FractalCanvas } from './components/FractalCanvas';
+import { FractalCanvas, FractalCanvasHandle } from './components/FractalCanvas';
 import { Controls } from './components/Controls';
 import { FractalComparator } from './components/FractalComparator';
 import { useIFSAnimation } from './hooks/useIFSAnimation';
 import { useCanvasTransform } from './hooks/useCanvasTransform';
+import { useVisualTheme } from './hooks/useVisualTheme';
 import { getFractal, getFractalNames } from './data/fractals';
 import { FractalConfig, Point } from './types';
-import { getDefaultTransform, CanvasTransform } from './utils/canvasUtils';
+import { estimateBounds } from './utils/ifsEngine';
 
 const batchSizeDefault = 100;
 const maxIterationsDefault = 10000;
 
-const canvasTransformInit = (name: string) => getDefaultTransform(name, 800, 600);
+const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
+
+const computeAutoTransform = (
+  bounds: { minX: number; maxX: number; minY: number; maxY: number },
+  canvasW: number,
+  canvasH: number,
+  targetCoverage: number = 0.75,
+  padding: number = 1.1
+): { scale: number; offX: number; offY: number } => {
+  const scaleX = (canvasW * targetCoverage) / ((bounds.maxX - bounds.minX) * padding);
+  const scaleY = (canvasH * targetCoverage) / ((bounds.maxY - bounds.minY) * padding);
+  const s = clamp(Math.min(scaleX, scaleY), 5, 2000);
+  const cx = (bounds.minX + bounds.maxX) / 2;
+  const cy = (bounds.minY + bounds.maxY) / 2;
+  return { scale: s, offX: -cx * s, offY: cy * s };
+};
 
 export const App = () => {
   const [selectedFractal, setSelectedFractal] = useState<string>('fern');
@@ -23,32 +39,57 @@ export const App = () => {
   const [compareFractal, setCompareFractal] = useState('sierpinski');
 
   const fractalNames = getFractalNames();
+  const canvasRef = useRef<FractalCanvasHandle>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [canvasElement, setCanvasElement] = useState<HTMLCanvasElement | null>(null);
+  const { theme, updateTheme, resetTheme } = useVisualTheme();
+
+  const syncCanvas = useCallback((s: number, x: number, y: number) => {
+    canvasRef.current?.initializeTransform(s, x, y);
+  }, []);
+
   const canvasTransform = useCanvasTransform({
-    initialTransform: canvasTransformInit(selectedFractal),
+    onChange: syncCanvas,
   });
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const {
-    points,
-    currentPoint,
     iteration,
     isRunning,
     start,
     pause,
-    reset,
+    reset: animReset,
     setBatchSize: setHookBatchSize,
     setMaxIterations: setHookMaxIterations,
   } = useIFSAnimation({
     transforms: fractalConfig.transforms,
     initialPoint: fractalConfig.initialPoint,
-    batchSize: batchSize,
-    maxIterations: maxIterations,
+    batchSize,
+    maxIterations,
+    onBatch: (newPoints) => {
+      if (newPoints.length > 0) {
+        canvasRef.current?.addPoints(newPoints);
+        canvasRef.current?.setCurrentPoint(newPoints[newPoints.length - 1]);
+      }
+    },
   });
 
   useEffect(() => {
-    reset();
+    const el = canvasRef.current?.getCanvasElement() ?? null;
+    setCanvasElement(el);
+  }, []);
+
+  useEffect(() => {
+    canvasRef.current?.reset();
+    animReset();
     setHookBatchSize(batchSize);
     setHookMaxIterations(maxIterations);
+
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (rect) {
+      const bounds = estimateBounds(fractalConfig.transforms, fractalConfig.initialPoint);
+      const { scale, offX, offY } = computeAutoTransform(bounds, rect.width, rect.height);
+      canvasTransform.setTransform(scale, offX, offY);
+    }
   }, [fractalConfig]);
 
   useEffect(() => {
@@ -64,7 +105,6 @@ export const App = () => {
     if (fractal) {
       setSelectedFractal(name);
       setFractalConfig(fractal);
-      canvasTransform.setTransform(getDefaultTransform(name, 800, 600));
     }
   }, []);
 
@@ -75,6 +115,26 @@ export const App = () => {
   const handleInitialPointChange = useCallback((point: Point) => {
     setFractalConfig(prev => ({ ...prev, initialPoint: point }));
   }, []);
+
+  const handleReset = useCallback(() => {
+    canvasRef.current?.reset();
+    animReset();
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (rect) {
+      const bounds = estimateBounds(fractalConfig.transforms, fractalConfig.initialPoint);
+      const { scale, offX, offY } = computeAutoTransform(bounds, rect.width, rect.height);
+      canvasTransform.setTransform(scale, offX, offY);
+    }
+  }, [animReset, canvasTransform, fractalConfig]);
+
+  const handleResetView = useCallback(() => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (rect) {
+      const bounds = estimateBounds(fractalConfig.transforms, fractalConfig.initialPoint);
+      const { scale, offX, offY } = computeAutoTransform(bounds, rect.width, rect.height);
+      canvasTransform.setTransform(scale, offX, offY);
+    }
+  }, [canvasTransform, fractalConfig]);
 
   const compareConfig = getFractal(compareFractal) || getFractal('sierpinski')!;
 
@@ -92,7 +152,7 @@ export const App = () => {
         isRunning={isRunning}
         onStart={start}
         onPause={pause}
-        onReset={reset}
+        onReset={handleReset}
         iteration={iteration}
         maxIterations={maxIterations}
         onMaxIterationsChange={setMaxIterations}
@@ -103,28 +163,33 @@ export const App = () => {
         onSelectFractal={handleSelectFractal}
         onZoomIn={canvasTransform.zoomIn}
         onZoomOut={canvasTransform.zoomOut}
-        onResetView={canvasTransform.resetTransform}
+        onResetView={handleResetView}
         showAdvanced={showAdvanced}
         onToggleAdvanced={() => setShowAdvanced(!showAdvanced)}
-        points={points}
-        transform={canvasTransform.transform}
         showCompare={showCompare}
-        onToggleCompare={(show) => setShowCompare(show)}
+        onToggleCompare={handleToggleCompare}
+        visualTheme={theme}
+        onVisualThemeChange={updateTheme}
+        onVisualThemeReset={resetTheme}
+        canvasElement={canvasElement}
       />
 
-      <div style={canvasContainerStyle}>
+      <div ref={containerRef} style={canvasContainerStyle}>
         <FractalCanvas
           ref={canvasRef}
-          points={points}
-          currentPoint={currentPoint}
-          transform={canvasTransform.transform}
           color={fractalConfig.color}
-          showCurrentPoint={isRunning}
+          showCursor={isRunning}
+          onZoom={(delta, cx, cy) => canvasTransform.zoom(delta, cx, cy)}
+          bgColor={theme.bgColor}
+          gridColor={theme.gridColor}
+          gridOpacity={theme.gridOpacity}
+          gridEnabled={theme.gridEnabled}
+          axesColor={theme.axesColor}
+          glowEnabled={theme.glowEnabled}
+          glowIntensity={theme.glowIntensity}
         />
 
         <div style={statsStyle}>
-          <span>Puntos: {points.length.toLocaleString()}</span>
-          <span> • </span>
           <span>Iteración: {iteration.toLocaleString()}</span>
         </div>
 
@@ -132,7 +197,7 @@ export const App = () => {
           <FractalComparator
             configA={fractalConfig}
             configB={compareConfig}
-            pointsCount={Math.min(points.length, 3000)}
+            pointsCount={Math.min(iteration, 3000)}
             onClose={() => setShowCompare(false)}
           />
         )}
