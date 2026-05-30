@@ -8,6 +8,7 @@ import { useVisualTheme } from './hooks/useVisualTheme';
 import { getFractal, getFractalNames } from './data/fractals';
 import { FractalConfig, Point } from './types';
 import { estimateBounds } from './utils/ifsEngine';
+import { EducationPanel } from './components/EducationPanel';
 
 const batchSizeDefault = 100;
 const maxIterationsDefault = 10000;
@@ -204,6 +205,12 @@ export const App = () => {
           />
         )}
       </div>
+
+      <EducationPanel
+        fractal={fractalConfig}
+        iteration={iteration}
+      />
+      
     </div>
   );
 };
