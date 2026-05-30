@@ -42,26 +42,46 @@ export const useCanvasTransform = ({
     onChange?.(sRef.current, oxRef.current, oyRef.current);
   }, [onChange]);
 
-  const zoomIn = useCallback(() => {
-    sRef.current = clamp(sRef.current * FACTOR, MIN, MAX);
-    notify();
-  }, [notify]);
-
-  const zoomOut = useCallback(() => {
-    sRef.current = clamp(sRef.current / FACTOR, MIN, MAX);
-    notify();
-  }, [notify]);
-
   const zoom = useCallback((delta: number, cx: number, cy: number) => {
     const oldS = sRef.current;
-    const newS = clamp(oldS * (delta > 0 ? FACTOR : 1 / FACTOR), MIN, MAX);
+
+    const newS = clamp(
+      oldS * (delta > 0 ? FACTOR : 1 / FACTOR),
+      MIN,
+      MAX
+    );
+
     const ratio = newS / oldS;
 
+    // Centro del canvas
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+
+    // Ajuste relativo al centro
+    oxRef.current =
+      cx - centerX - (cx - centerX - oxRef.current) * ratio;
+
+    oyRef.current =
+      cy - centerY - (cy - centerY - oyRef.current) * ratio;
+
     sRef.current = newS;
-    oxRef.current = cx - (cx - oxRef.current) * ratio;
-    oyRef.current = cy - (cy - oyRef.current) * ratio;
+
     notify();
   }, [notify]);
+
+  const zoomIn = useCallback(() => {
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+
+    zoom(1, centerX, centerY);
+  }, [zoom]);
+
+  const zoomOut = useCallback(() => {
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+
+    zoom(-1, centerX, centerY);
+  }, [zoom]);
 
   const pan = useCallback((dx: number, dy: number) => {
     oxRef.current += dx;

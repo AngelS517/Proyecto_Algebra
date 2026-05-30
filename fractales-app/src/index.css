@@ -29,3 +29,53 @@ body {
   width: 100%;
   height: 100vh;
 }
+
+.custom-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+
+/* Track */
+.custom-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+/* Thumb */
+.custom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+
+  width: 18px;
+  height: 18px;
+
+  border-radius: 50%;
+  background: #2dd4bf;
+
+  border: 2px solid #0f172a;
+
+  cursor: pointer;
+
+  margin-top: -6px;
+
+  box-shadow: 0 0 8px rgba(45, 212, 191, 0.5);
+}
+
+/* Firefox */
+.custom-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+
+  border: none;
+  border-radius: 50%;
+
+  background: #2dd4bf;
+
+  cursor: pointer;
+}

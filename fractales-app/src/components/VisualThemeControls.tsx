@@ -19,23 +19,35 @@ export const VisualThemeControls = ({ theme, onChange, onReset }: Props) => {
             onChange={e => onChange({ bgColor: e.target.value })}
             style={colorInputStyle}
           />
-          <span style={valueStyle}>{theme.bgColor}</span>
+          {/* <span style={valueStyle}>{theme.bgColor}</span> */}
         </div>
       </div>
 
-      {/* Fractal Color */}
-      {/* <div style={sectionStyle}>
-        <label style={labelStyle}>Color del fractal</label>
-        <div style={rowStyle}>
-          <input
-            type="color"
-            value={theme.fractalColor}
-            onChange={e => onChange({ fractalColor: e.target.value })}
-            style={colorInputStyle}
-          />
-          <span style={valueStyle}>{theme.fractalColor}</span>
-        </div>
-      </div> */}
+      <div style={sectionStyle}>
+        <label style={labelStyle}>Color inicial fractal</label>
+
+        <input
+          type="color"
+          value={theme.gradientStart}
+          onChange={(e) =>
+            onChange({ gradientStart: e.target.value })
+          }
+          style={colorInputStyle}
+        />
+      </div>
+
+      <div style={sectionStyle}>
+        <label style={labelStyle}>Color final fractal</label>
+
+        <input
+          type="color"
+          value={theme.gradientEnd}
+          onChange={(e) =>
+            onChange({ gradientEnd: e.target.value })
+          }
+          style={colorInputStyle}
+        />
+      </div>
 
       {/* Grid */}
       <div style={sectionStyle}>
@@ -57,11 +69,12 @@ export const VisualThemeControls = ({ theme, onChange, onReset }: Props) => {
                 onChange={e => onChange({ gridColor: e.target.value })}
                 style={colorInputStyle}
               />
-              <span style={valueStyle}>{theme.gridColor}</span>
+              {/* <span style={valueStyle}>{theme.gridColor}</span> */}
             </div>
             <div style={sliderRowStyle}>
               <span style={sliderLabelStyle}>Opacidad</span>
               <input
+                className="custom-slider"
                 type="range"
                 min="0"
                 max="100"
@@ -85,7 +98,7 @@ export const VisualThemeControls = ({ theme, onChange, onReset }: Props) => {
             onChange={e => onChange({ axesColor: e.target.value })}
             style={colorInputStyle}
           />
-          <span style={valueStyle}>{theme.axesColor}</span>
+          {/* <span style={valueStyle}>{theme.axesColor}</span> */}
         </div>
       </div>
 
@@ -104,6 +117,7 @@ export const VisualThemeControls = ({ theme, onChange, onReset }: Props) => {
           <div style={sliderRowStyle}>
             <span style={sliderLabelStyle}>Intensidad</span>
             <input
+              className="custom-slider"
               type="range"
               min="0"
               max="100"

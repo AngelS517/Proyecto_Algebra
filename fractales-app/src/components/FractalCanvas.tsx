@@ -33,6 +33,9 @@ interface Props {
 
   glowEnabled?: boolean;
   glowIntensity?: number;
+
+  gradientStart?: string;
+  gradientEnd?: string;
 }
 
 const MAX_VISIBLE = 80000;
@@ -44,10 +47,10 @@ const hexToRgb = (h: string) => {
 
   return r
     ? {
-        r: parseInt(r[1], 16),
-        g: parseInt(r[2], 16),
-        b: parseInt(r[3], 16)
-      }
+      r: parseInt(r[1], 16),
+      g: parseInt(r[2], 16),
+      b: parseInt(r[3], 16)
+    }
     : { r: 45, g: 212, b: 191 };
 };
 
@@ -157,9 +160,12 @@ function drawPoints(
   oy: number,
   pts: Point[],
   total: number,
-  color: string
+  startColor: string,
+  endColor: string
 ) {
-  const rgb = hexToRgb(color);
+  const start = hexToRgb(startColor);
+  const end = hexToRgb(endColor);
+
   const stride = Math.ceil(total / MAX_VISIBLE);
 
   for (let i = 0; i < total; i += stride) {
@@ -168,11 +174,19 @@ function drawPoints(
     const cx = W / 2 + ox + x * s;
     const cy = H / 2 + oy - y * s;
 
-    const intensity = 0.6 + (i / total) * 0.4;
+    const t = i / total;
 
-    ctx.fillStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},${Math.min(1, intensity)})`;
+    const r = Math.round(start.r + (end.r - start.r) * t);
+    const g = Math.round(start.g + (end.g - start.g) * t);
+    const b = Math.round(start.b + (end.b - start.b) * t);
 
-    ctx.fillRect(cx, cy, 2, 2);
+    const alpha = 0.6 + t * 0.4;
+
+    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, 1.3, 0, Math.PI * 2);
+    ctx.fill();
   }
 }
 
@@ -212,9 +226,15 @@ function drawGlow(
       const cx = W / 2 + ox + x * s;
       const cy = H / 2 + oy - y * s;
 
-      ctx.fillStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},${Math.min(1, gi + 0.1)})`;
+      const hueShift = (drawIdx / drawnCount) * 80;
 
-      ctx.fillRect(cx, cy, 2.5, 2.5);
+      ctx.fillStyle = `hsla(${180 + hueShift}, 100%, 70%, ${Math.min(1, gi + 0.2)})`;
+
+      const glowRadius = Math.max(0.6, 3 - s * 0.004);
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, glowRadius, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     drawIdx++;
@@ -259,6 +279,8 @@ export const FractalCanvas = forwardRef<FractalCanvasHandle, Props>(
   (
     {
       color,
+      gradientStart = '#2dd4bf',
+      gradientEnd = '#8b5cf6',
       showCursor = true,
       onZoom,
 
@@ -280,6 +302,9 @@ export const FractalCanvas = forwardRef<FractalCanvasHandle, Props>(
     const cursorRef = useRef<Point>({ x: 0, y: 0 });
 
     const colorRef = useRef(color);
+
+    const gradientStartRef = useRef(gradientStart);
+    const gradientEndRef = useRef(gradientEnd);
 
     const bgRef = useRef(bgColor);
 
@@ -311,6 +336,16 @@ export const FractalCanvas = forwardRef<FractalCanvasHandle, Props>(
       colorRef.current = color;
       dirtyRef.current = true;
     }, [color]);
+
+    useEffect(() => {
+      gradientStartRef.current = gradientStart;
+      dirtyRef.current = true;
+    }, [gradientStart]);
+
+    useEffect(() => {
+      gradientEndRef.current = gradientEnd;
+      dirtyRef.current = true;
+    }, [gradientEnd]);
 
     useEffect(() => {
       bgRef.current = bgColor;
@@ -362,7 +397,7 @@ export const FractalCanvas = forwardRef<FractalCanvasHandle, Props>(
       const dpr = dprRef.current;
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.imageSmoothingEnabled = false;
+      ctx.imageSmoothingEnabled = true;
 
       const W = cvs.width / dpr;
       const H = cvs.height / dpr;
@@ -394,7 +429,18 @@ export const FractalCanvas = forwardRef<FractalCanvasHandle, Props>(
 
       if (total === 0) return;
 
-      drawPoints(ctx, W, H, s, ox, oy, pts, total, colorRef.current);
+      drawPoints(
+        ctx,
+        W,
+        H,
+        s,
+        ox,
+        oy,
+        pts,
+        total,
+        gradientStartRef.current,
+        gradientEndRef.current
+      );
 
       if (glowEnabledRef.current) {
         drawGlow(

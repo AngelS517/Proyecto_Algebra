@@ -187,6 +187,8 @@ export const App = () => {
           axesColor={theme.axesColor}
           glowEnabled={theme.glowEnabled}
           glowIntensity={theme.glowIntensity}
+          gradientStart={theme.gradientStart}
+          gradientEnd={theme.gradientEnd}
         />
 
         <div style={statsStyle}>

@@ -143,7 +143,7 @@ export const Controls = ({
             fractal={fractal}
             fractalNames={fractalNames}
             showCompare={showCompare ?? false}
-            onToggleCompare={onToggleCompare ?? (() => {})}
+            onToggleCompare={onToggleCompare ?? (() => { })}
           />
         );
 
@@ -211,7 +211,15 @@ export const Controls = ({
           step="100"
           value={maxIterations}
           onChange={(e) => onMaxIterationsChange(parseInt(e.target.value))}
-          style={sliderStyle}
+          className="custom-slider"
+          style={{
+            background: `linear-gradient(
+            to right,
+            #2dd4bf 0%,
+            #2dd4bf ${((maxIterations - 100) / (50000 - 100)) * 100}%,
+            #2a3142 ${((maxIterations - 100) / (50000 - 100)) * 100}%,
+            #2a3142 100%)`
+          }}
         />
       </div>
 
@@ -224,7 +232,15 @@ export const Controls = ({
           step="1"
           value={batchSize}
           onChange={(e) => onBatchSizeChange(parseInt(e.target.value))}
-          style={sliderStyle}
+          className="custom-slider"
+          style={{
+            background: `linear-gradient(
+            to right,
+            #2dd4bf 0%,
+            #2dd4bf ${((batchSize - 1) / (500 - 1)) * 100}%,
+            #2a3142 ${((batchSize - 1) / (500 - 1)) * 100}%,
+            #2a3142 100% )`
+          }}
         />
       </div>
 
@@ -269,14 +285,14 @@ export const Controls = ({
                   tab === 'editor'
                     ? '✏️'
                     : tab === 'save'
-                    ? '💾'
-                    : tab === 'export'
-                    ? '🖼️'
-                    : tab === 'stats'
-                    ? '📊'
-                    : tab === 'compare'
-                    ? '🆚'
-                    : '🎨'
+                      ? '💾'
+                      : tab === 'export'
+                        ? '🖼️'
+                        : tab === 'stats'
+                          ? '📊'
+                          : tab === 'compare'
+                            ? '🆚'
+                            : '🎨'
                 }
               </button>
             ))}
@@ -339,12 +355,6 @@ const inputStyle: React.CSSProperties = {
   borderRadius: '6px',
   color: '#e2e8f0',
   fontSize: '14px',
-};
-
-const sliderStyle: React.CSSProperties = {
-  width: '100%',
-  cursor: 'pointer',
-  accentColor: '#2dd4bf',
 };
 
 const rowStyle: React.CSSProperties = {
