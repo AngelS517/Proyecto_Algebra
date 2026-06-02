@@ -9,6 +9,7 @@ interface Props {
 export const StatsTab = ({ iteration, points, fractal }: Props) => {
   return (
     <div>
+      <span style={statLabelStyle}>Estadisticas del fractal</span>
       <div style={statsGridStyle}>
         <div style={statItemStyle}>
           <span style={statLabelStyle}>Iteraciones</span>

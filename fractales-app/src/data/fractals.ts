@@ -2,7 +2,14 @@ import { FractalConfig } from '../types';
 
 export const fern: FractalConfig = {
   name: 'Helecho de Barnsley',
-  description: 'Un fractal que se asemeja a una hoja de helecho, generado por 4 transformaciones afines',
+  description:
+    'Un fractal que se asemeja a una hoja de helecho. Cada transformación genera una parte diferente de la planta: tallo, hojas principales y hojas secundarias.',
+  transformDescriptions: [
+    'Genera el tallo principal del helecho.',
+    'Genera la mayor parte de las hojas del helecho.',
+    'Genera las hojas pequeñas del lado izquierdo.',
+    'Genera las hojas pequeñas del lado derecho.'
+  ],
   transforms: [
     { a: 0, b: 0, c: 0, d: 0.16, e: 0, f: 0, probability: 0.01 },
     { a: 0.85, b: 0.04, c: -0.04, d: 0.85, e: 0, f: 1.60, probability: 0.85 },
@@ -17,6 +24,11 @@ export const fern: FractalConfig = {
 export const sierpinski: FractalConfig = {
   name: 'Triángulo de Sierpinski',
   description: 'Un fractal geométrico clásica formado por subdividir un triángulo en partes más pequeñas',
+  transformDescriptions: [
+    'Mueve los puntos hacia el vértice inferior izquierdo.',
+    'Mueve los puntos hacia el vértice inferior derecho.',
+    'Mueve los puntos hacia el vértice superior.'
+  ],
   transforms: [
     { a: 0.5, b: 0, c: 0, d: 0.5, e: 0, f: 0, probability: 0.33 },
     { a: 0.5, b: 0, c: 0, d: 0.5, e: 0.5, f: 0, probability: 0.33 },
@@ -30,6 +42,10 @@ export const sierpinski: FractalConfig = {
 export const dragon: FractalConfig = {
   name: 'Curva del Dragón',
   description: 'Una curva fractal que se asemeja a un dragón mitológico',
+  transformDescriptions: [
+    'Genera la primera mitad de la curva mediante una rotación de 45 grados.',
+    'Genera la segunda mitad de la curva mediante una rotación opuesta y un desplazamiento.'
+  ],
   transforms: [
     { a: 0.5, b: -0.5, c: 0.5, d: 0.5, e: 0, f: 0, probability: 0.5 },
     { a: -0.5, b: -0.5, c: 0.5, d: -0.5, e: 1, f: 0, probability: 0.5 },
@@ -42,6 +58,10 @@ export const dragon: FractalConfig = {
 export const levy: FractalConfig = {
   name: 'Curva de Lévy',
   description: 'Una curva fractal que se asemeja a la letra C',
+  transformDescriptions: [
+    'Construye la rama izquierda de la curva.',
+    'Construye la rama derecha de la curva formando el patrón característico.'
+  ],
   transforms: [
     { a: 0.5, b: -0.5, c: 0.5, d: 0.5, e: 0, f: 0, probability: 0.5 },
     { a: 0.5, b: 0.5, c: -0.5, d: 0.5, e: 0.5, f: 0.5, probability: 0.5 },
@@ -54,6 +74,12 @@ export const levy: FractalConfig = {
 export const tree: FractalConfig = {
   name: 'Árbol Fractal',
   description: 'Un árbol generado por transformaciones afines que simula ramas',
+  transformDescriptions: [
+    'Genera el tronco principal del árbol.',
+    'Genera las ramas inclinadas hacia la izquierda.',
+    'Genera las ramas inclinadas hacia la derecha.',
+    'Genera pequeños detalles y ramificaciones secundarias.'
+  ],
   transforms: [
     { a: 0, b: 0, c: 0, d: 0.5, e: 0, f: 0, probability: 0.05 },
     { a: 0.42, b: -0.42, c: 0.42, d: 0.42, e: 0, f: 0.2, probability: 0.4 },

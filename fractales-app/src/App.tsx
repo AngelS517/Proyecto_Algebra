@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { FractalCanvas, FractalCanvasHandle } from './components/FractalCanvas';
 import { Controls } from './components/Controls';
-import { FractalComparator } from './components/FractalComparator';
+// import { FractalComparator } from './components/FractalComparator';
 import { useIFSAnimation } from './hooks/useIFSAnimation';
 import { useCanvasTransform } from './hooks/useCanvasTransform';
 import { useVisualTheme } from './hooks/useVisualTheme';
@@ -34,10 +34,10 @@ export const App = () => {
   const [selectedFractal, setSelectedFractal] = useState<string>('fern');
   const [fractalConfig, setFractalConfig] = useState<FractalConfig>(() => getFractal('fern')!);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [showCompare, setShowCompare] = useState(false);
+  // const [showCompare, setShowCompare] = useState(false);
   const [batchSize, setBatchSize] = useState(batchSizeDefault);
   const [maxIterations, setMaxIterations] = useState(maxIterationsDefault);
-  const [compareFractal, setCompareFractal] = useState('sierpinski');
+  // const [compareFractal, setCompareFractal] = useState('sierpinski');
 
   const fractalNames = getFractalNames();
   const canvasRef = useRef<FractalCanvasHandle>(null);
@@ -110,6 +110,7 @@ export const App = () => {
   }, []);
 
   const handleFractalChange = useCallback((config: FractalConfig) => {
+    console.log(config.transforms);
     setFractalConfig(config);
   }, []);
 
@@ -137,11 +138,11 @@ export const App = () => {
     }
   }, [canvasTransform, fractalConfig]);
 
-  const compareConfig = getFractal(compareFractal) || getFractal('sierpinski')!;
+  // const compareConfig = getFractal(compareFractal) || getFractal('sierpinski')!;
 
-  const handleToggleCompare = useCallback((show: boolean) => {
-    setShowCompare(show);
-  }, []);
+  // const handleToggleCompare = useCallback((show: boolean) => {
+  //   setShowCompare(show);
+  // }, []);
 
   return (
     <div style={appStyle}>
@@ -167,8 +168,8 @@ export const App = () => {
         onResetView={handleResetView}
         showAdvanced={showAdvanced}
         onToggleAdvanced={() => setShowAdvanced(!showAdvanced)}
-        showCompare={showCompare}
-        onToggleCompare={handleToggleCompare}
+        // showCompare={showCompare}
+        // onToggleCompare={handleToggleCompare}
         visualTheme={theme}
         onVisualThemeChange={updateTheme}
         onVisualThemeReset={resetTheme}
@@ -196,21 +197,21 @@ export const App = () => {
           <span>Iteración: {iteration.toLocaleString()}</span>
         </div>
 
-        {showCompare && (
+        {/* {showCompare && (
           <FractalComparator
             configA={fractalConfig}
             configB={compareConfig}
             pointsCount={Math.min(iteration, 3000)}
             onClose={() => setShowCompare(false)}
           />
-        )}
+        )} */}
       </div>
 
       <EducationPanel
         fractal={fractalConfig}
         iteration={iteration}
       />
-      
+
     </div>
   );
 };

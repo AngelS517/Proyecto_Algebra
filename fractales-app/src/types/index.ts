@@ -16,6 +16,7 @@ export interface AffineTransform {
 export interface FractalConfig {
   name: string;
   description: string;
+  transformDescriptions?: string[];
   transforms: AffineTransform[];
   initialPoint: Point;
   defaultIterations: number;

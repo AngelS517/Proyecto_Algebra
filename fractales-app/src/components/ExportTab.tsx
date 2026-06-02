@@ -51,6 +51,7 @@ export const ExportTab = ({ points, iteration, fractal, canvasElement }: Props) 
     <div>
       <div style={exportSectionStyle}>
         <div style={exportPreviewStyle}>
+          <span style={previewLabelStyle}>Puedes exportar la imagen de tu fractal en varios formatos.</span>
           <div style={previewLabelStyle}>Vista previa del fractal</div>
           <div style={fractalNameStyle}>{fractal.name}</div>
           <div style={pointsCountStyle}>{(points?.length || iteration).toLocaleString()} puntos</div>
@@ -63,11 +64,11 @@ export const ExportTab = ({ points, iteration, fractal, canvasElement }: Props) 
             value={fileName}
             onChange={(e) => setFileName(e.target.value)}
             style={inputStyle}
-            placeholder="mi-fractal"
+            placeholder="Mi fractal"
           />
         </div>
 
-        <div style={formGroupStyle}>
+        {/* <div style={formGroupStyle}>
           <label style={formLabelStyle}>Fondo</label>
           <div style={radioGroupStyle}>
             <label style={radioLabelStyle}>
@@ -91,9 +92,9 @@ export const ExportTab = ({ points, iteration, fractal, canvasElement }: Props) 
               <span style={radioSpanStyle}>☀️ Claro</span>
             </label>
           </div>
-        </div>
+        </div> */}
 
-        <div style={formGroupStyle}>
+        {/* <div style={formGroupStyle}>
           <label style={formLabelStyle}>Resolución</label>
           <div style={resolutionButtonsStyle}>
             {[1, 2, 3, 4].map(res => (
@@ -112,7 +113,7 @@ export const ExportTab = ({ points, iteration, fractal, canvasElement }: Props) 
           <div style={resolutionInfoStyle}>
             <span>Tamaño: {getCanvasSize(exportResolution)}</span>
           </div>
-        </div>
+        </div> */}
 
         <div style={exportButtonsStyle}>
           <button onClick={handleExportPNG} style={exportPngButtonStyle}>

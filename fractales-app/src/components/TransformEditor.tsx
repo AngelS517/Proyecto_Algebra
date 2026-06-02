@@ -7,9 +7,21 @@ interface TransformEditorProps {
 }
 
 export const TransformEditor = ({ transform, index, onChange }: TransformEditorProps) => {
+
   const handleChange = (field: string, value: string) => {
-    const numValue = parseFloat(value) || 0;
-    onChange(index, { ...transform, [field]: numValue });
+
+    if (value === '') {
+      return;
+    }
+
+    const numValue = parseFloat(value);
+
+    if (!isNaN(numValue)) {
+      onChange(index, {
+        ...transform,
+        [field]: numValue
+      });
+    }
   };
 
   return (
@@ -30,6 +42,7 @@ export const TransformEditor = ({ transform, index, onChange }: TransformEditorP
             step="0.01"
             value={transform.a}
             onChange={(e) => handleChange('a', e.target.value)}
+            // onFocus={(e) => e.target.select()}
             style={inputStyle}
           />
         </label>
@@ -40,6 +53,7 @@ export const TransformEditor = ({ transform, index, onChange }: TransformEditorP
             step="0.01"
             value={transform.b}
             onChange={(e) => handleChange('b', e.target.value)}
+            // onFocus={(e) => e.target.select()}
             style={inputStyle}
           />
         </label>
@@ -50,6 +64,7 @@ export const TransformEditor = ({ transform, index, onChange }: TransformEditorP
             step="0.01"
             value={transform.c}
             onChange={(e) => handleChange('c', e.target.value)}
+            // onFocus={(e) => e.target.select()}
             style={inputStyle}
           />
         </label>
@@ -60,6 +75,7 @@ export const TransformEditor = ({ transform, index, onChange }: TransformEditorP
             step="0.01"
             value={transform.d}
             onChange={(e) => handleChange('d', e.target.value)}
+            // onFocus={(e) => e.target.select()}
             style={inputStyle}
           />
         </label>
@@ -70,6 +86,7 @@ export const TransformEditor = ({ transform, index, onChange }: TransformEditorP
             step="0.01"
             value={transform.e}
             onChange={(e) => handleChange('e', e.target.value)}
+            // onFocus={(e) => e.target.select()}
             style={inputStyle}
           />
         </label>
@@ -80,6 +97,7 @@ export const TransformEditor = ({ transform, index, onChange }: TransformEditorP
             step="0.01"
             value={transform.f}
             onChange={(e) => handleChange('f', e.target.value)}
+            // onFocus={(e) => e.target.select()}
             style={inputStyle}
           />
         </label>
@@ -89,11 +107,10 @@ export const TransformEditor = ({ transform, index, onChange }: TransformEditorP
         <input
           type="number"
           step="0.01"
-          min="0"
-          max="1"
           value={transform.probability}
           onChange={(e) => handleChange('probability', e.target.value)}
-          style={{ ...inputStyle, width: '100%' }}
+          // onFocus={(e) => e.target.select()}
+          style={inputStyle}
         />
       </label>
     </div>
@@ -109,4 +126,5 @@ const inputStyle: React.CSSProperties = {
   color: '#e2e8f0',
   fontSize: '12px',
   fontFamily: 'monospace',
+  appearance: 'textfield',
 };

@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { FractalConfig, Point } from '../types';
 import { EditorTab } from './EditorTab';
-import { SaveTab } from './SaveTab';
+// import { SaveTab } from './SaveTab';
 import { ExportTab } from './ExportTab';
 import { StatsTab } from './StatsTab';
 import { CompareTab } from './CompareTab';
 import { VisualTab } from './VisualTab';
 import { VisualTheme } from '../types/visual';
 
-type TabType = 'editor' | 'save' | 'export' | 'stats' | 'compare' | 'visual';
+type TabType = 'editor' | 'export' | 'stats' | 'visual';
 
 interface ControlsProps {
   fractal: FractalConfig;
@@ -112,17 +112,17 @@ export const Controls = ({
       case 'editor':
         return <EditorTab fractal={fractal} onFractalChange={onFractalChange} />;
 
-      case 'save':
-        return (
-          <SaveTab
-            fractal={fractal}
-            onFractalChange={onFractalChange}
-            canUndo={canUndo}
-            canRedo={canRedo}
-            onUndo={handleUndo}
-            onRedo={handleRedo}
-          />
-        );
+      // case 'save':
+      //   return (
+      //     <SaveTab
+      //       fractal={fractal}
+      //       onFractalChange={onFractalChange}
+      //       canUndo={canUndo}
+      //       canRedo={canRedo}
+      //       onUndo={handleUndo}
+      //       onRedo={handleRedo}
+      //     />
+      //   );
 
       case 'export':
         return (
@@ -137,15 +137,15 @@ export const Controls = ({
       case 'stats':
         return <StatsTab iteration={iteration} points={points} fractal={fractal} />;
 
-      case 'compare':
-        return (
-          <CompareTab
-            fractal={fractal}
-            fractalNames={fractalNames}
-            showCompare={showCompare ?? false}
-            onToggleCompare={onToggleCompare ?? (() => { })}
-          />
-        );
+      // case 'compare':
+      //   return (
+      //     <CompareTab
+      //       fractal={fractal}
+      //       fractalNames={fractalNames}
+      //       showCompare={showCompare ?? false}
+      //       onToggleCompare={onToggleCompare ?? (() => { })}
+      //     />
+      //   );
 
       case 'visual':
         return visualTheme && onVisualThemeChange && onVisualThemeReset ? (
@@ -180,7 +180,7 @@ export const Controls = ({
         </select>
       </div>
 
-      <div style={sectionStyle}>
+      {/* <div style={sectionStyle}>
         <label style={labelStyle}>Punto inicial</label>
         <div style={rowStyle}>
           <input
@@ -200,10 +200,13 @@ export const Controls = ({
             placeholder="Y"
           />
         </div>
-      </div>
+      </div> */}
 
       <div style={sectionStyle}>
         <label style={labelStyle}>Iteraciones: {iteration.toLocaleString()} / {maxIterations.toLocaleString()}</label>
+        <span style={{ fontSize: '11px', color: '#64748b', marginBottom: '6px', display: 'block' }}>
+          Controla el número máximo de puntos a generar. A mayor número, más detallado será el fractal pero tardará más en generarse.
+        </span>
         <input
           type="range"
           min="100"
@@ -224,7 +227,10 @@ export const Controls = ({
       </div>
 
       <div style={sectionStyle}>
-        <label style={labelStyle}>Velocidad (puntos/frame)</label>
+        <label style={labelStyle}>Velocidad: ({batchSize} puntos/frame)</label>
+        <span style={{ fontSize: '11px', color: '#64748b', marginBottom: '6px', display: 'block' }}>
+          Velocidad con la que se generan los puntos. A mayor velocidad, más rápido se genera el fractal pero puede afectar el rendimiento.
+        </span>
         <input
           type="range"
           min="1"
@@ -272,7 +278,7 @@ export const Controls = ({
       {showAdvanced && (
         <div style={advancedContainerStyle}>
           <div style={tabsContainerStyle}>
-            {(['editor', 'save', 'export', 'stats', 'compare', 'visual'] as TabType[]).map(tab => (
+            {(['editor', 'export', 'stats', 'visual'] as TabType[]).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -284,15 +290,11 @@ export const Controls = ({
                 {
                   tab === 'editor'
                     ? '✏️'
-                    : tab === 'save'
-                      ? '💾'
-                      : tab === 'export'
-                        ? '🖼️'
-                        : tab === 'stats'
-                          ? '📊'
-                          : tab === 'compare'
-                            ? '🆚'
-                            : '🎨'
+                    : tab === 'export'
+                      ? '🖼️'
+                      : tab === 'stats'
+                        ? '📊'
+                        : '🎨'
                 }
               </button>
             ))}

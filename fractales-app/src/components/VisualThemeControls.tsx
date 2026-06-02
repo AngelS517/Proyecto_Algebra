@@ -9,6 +9,9 @@ interface Props {
 export const VisualThemeControls = ({ theme, onChange, onReset }: Props) => {
   return (
     <div style={containerStyle}>
+      <span style={{ fontSize: '14px', fontWeight: '600', color: '#e2e8f0' }}>
+        Personaliza los colores y estilos de tu fractal
+      </span>
       {/* Background */}
       <div style={sectionStyle}>
         <label style={labelStyle}>Fondo</label>

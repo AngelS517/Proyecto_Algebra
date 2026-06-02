@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { FractalConfig, Point, AffineTransform } from '../types';
-import { storageService, SavedConfig } from '../services/storage';
+// import { storageService, SavedConfig } from '../services/storage';
 import { exportService } from '../services/export';
 import { statisticsService, FractalStats } from '../services/statistics';
 import { useHistory } from '../hooks/useHistory';
@@ -20,7 +20,7 @@ interface AdvancedPanelProps {
   canRedo?: boolean;
 }
 
-type TabType = 'save' | 'export' | 'stats' | 'compare';
+type TabType = 'export' | 'stats';
 
 const initialTransformUsage = (transforms: AffineTransform[]): number[] =>
   transforms.map(() => 0);
@@ -38,8 +38,8 @@ export const AdvancedPanel = ({
   canUndo = false,
   canRedo = false,
 }: AdvancedPanelProps) => {
-  const [activeTab, setActiveTab] = useState<TabType>('save');
-  const [savedConfigs, setSavedConfigs] = useState<SavedConfig[]>([]);
+  const [activeTab, setActiveTab] = useState<TabType>('export');
+  // const [savedConfigs, setSavedConfigs] = useState<SavedConfig[]>([]);
   const [configName, setConfigName] = useState('');
   const [stats, setStats] = useState<FractalStats | null>(null);
   const [generationTime, setGenerationTime] = useState(0);
@@ -51,9 +51,9 @@ export const AdvancedPanel = ({
   const startTimeRef = useRef<number>(0);
   const history = useHistory<FractalConfig>(fractal);
 
-  useEffect(() => {
-    setSavedConfigs(storageService.getSavedConfigs());
-  }, []);
+  // useEffect(() => {
+  //   setSavedConfigs(storageService.getSavedConfigs());
+  // }, []);
 
   useEffect(() => {
     setTransformUsage(initialTransformUsage(fractal.transforms));
@@ -81,21 +81,21 @@ export const AdvancedPanel = ({
     }
   }, [iteration, generationTime, points.length, transformUsage, fractal.transforms]);
 
-  const handleSaveConfig = () => {
-    if (!configName.trim()) return;
-    storageService.saveConfig(configName.trim(), fractal);
-    setSavedConfigs(storageService.getSavedConfigs());
-    setConfigName('');
-  };
+  // const handleSaveConfig = () => {
+  //   if (!configName.trim()) return;
+  //   storageService.saveConfig(configName.trim(), fractal);
+  //   setSavedConfigs(storageService.getSavedConfigs());
+  //   setConfigName('');
+  // };
 
-  const handleLoadConfig = (config: SavedConfig) => {
-    onFractalChange(config.config);
-  };
+  // const handleLoadConfig = (config: SavedConfig) => {
+  //   onFractalChange(config.config);
+  // };
 
-  const handleDeleteConfig = (id: string) => {
-    storageService.deleteConfig(id);
-    setSavedConfigs(storageService.getSavedConfigs());
-  };
+  // const handleDeleteConfig = (id: string) => {
+  //   storageService.deleteConfig(id);
+  //   setSavedConfigs(storageService.getSavedConfigs());
+  // };
 
   const handleExportPNG = useCallback(() => {
     const canvas = document.querySelector('canvas');
@@ -125,12 +125,12 @@ export const AdvancedPanel = ({
   //   }
   // };
 
-  const handleSavePreset = () => {
-    const name = prompt('Nombre del preset:');
-    if (name) {
-      storageService.savePreset(name, fractal);
-    }
-  };
+  // const handleSavePreset = () => {
+  //   const name = prompt('Nombre del preset:');
+  //   if (name) {
+  //     storageService.savePreset(name, fractal);
+  //   }
+  // };
 
   const handleUndo = () => {
     history.undo();
@@ -149,30 +149,26 @@ export const AdvancedPanel = ({
   return (
     <div style={containerStyle}>
       <div style={tabsContainerStyle}>
-  {(['save', 'export', 'stats', 'compare'] as TabType[]).map(tab => (
-    <button
-      key={tab}
-      onClick={() => setActiveTab(tab)}
-      style={{
-        ...tabButtonStyle,
-        ...(activeTab === tab ? activeTabStyle : {}),
-      }}
-    >
-      {
-        tab === 'save'
-          ? '💾'
-          : tab === 'export'
-          ? '🖼️'
-          : tab === 'stats'
-          ? '📊'
-          : '🆚'
-      }
-    </button>
-  ))}
-</div>
+        {(['export', 'stats'] as TabType[]).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            style={{
+              ...tabButtonStyle,
+              ...(activeTab === tab ? activeTabStyle : {}),
+            }}
+          >
+            {
+              tab === 'export'
+                ? '🖼️'
+                : '📊'
+            }
+          </button>
+        ))}
+      </div>
 
       <div style={panelContentStyle}>
-        {activeTab === 'save' && (
+        {/* {activeTab === 'save' && (
           <div>
             <h3 style={sectionTitleStyle}>Guardar/Cargar Configuración</h3>
 
@@ -218,7 +214,7 @@ export const AdvancedPanel = ({
               )}
             </div>
           </div>
-        )}
+        )} */}
 
         {activeTab === 'export' && (
           <div>
@@ -297,7 +293,7 @@ export const AdvancedPanel = ({
         )}
 
 
-        {activeTab === 'compare' && (
+        {/* {activeTab === 'compare' && (
           <div>
             <h3 style={sectionTitleStyle}>Comparador de Fractales</h3>
             <p style={infoTextStyle}>
@@ -314,7 +310,7 @@ export const AdvancedPanel = ({
               {showCompare ? '🔴 Salir del modo comparador' : '🟢 Activar modo comparador'}
             </button>
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );
@@ -366,94 +362,94 @@ const sectionTitleStyle: React.CSSProperties = {
   marginBottom: '12px',
 };
 
-const historyButtonsStyle: React.CSSProperties = {
-  display: 'flex',
-  gap: '8px',
-  marginBottom: '16px',
-};
+// const historyButtonsStyle: React.CSSProperties = {
+//   display: 'flex',
+//   gap: '8px',
+//   marginBottom: '16px',
+// };
 
-const historyButtonStyle: React.CSSProperties = {
-  flex: 1,
-  padding: '8px',
-  backgroundColor: '#1e293b',
-  border: '1px solid #334155',
-  borderRadius: '4px',
-  color: '#e2e8f0',
-  fontSize: '12px',
-  cursor: 'pointer',
-};
+// const historyButtonStyle: React.CSSProperties = {
+//   flex: 1,
+//   padding: '8px',
+//   backgroundColor: '#1e293b',
+//   border: '1px solid #334155',
+//   borderRadius: '4px',
+//   color: '#e2e8f0',
+//   fontSize: '12px',
+//   cursor: 'pointer',
+// };
 
-const inputGroupStyle: React.CSSProperties = {
-  display: 'flex',
-  gap: '8px',
-  marginBottom: '12px',
-};
+// const inputGroupStyle: React.CSSProperties = {
+//   display: 'flex',
+//   gap: '8px',
+//   marginBottom: '12px',
+// };
 
-const inputStyle: React.CSSProperties = {
-  flex: 1,
-  padding: '8px',
-  backgroundColor: '#1e293b',
-  border: '1px solid #334155',
-  borderRadius: '4px',
-  color: '#e2e8f0',
-  fontSize: '12px',
-};
+// const inputStyle: React.CSSProperties = {
+//   flex: 1,
+//   padding: '8px',
+//   backgroundColor: '#1e293b',
+//   border: '1px solid #334155',
+//   borderRadius: '4px',
+//   color: '#e2e8f0',
+//   fontSize: '12px',
+// };
 
-const primaryButtonStyle: React.CSSProperties = {
-  padding: '8px 12px',
-  backgroundColor: '#2dd4bf',
-  border: 'none',
-  borderRadius: '4px',
-  color: '#0f172a',
-  fontSize: '12px',
-  fontWeight: '600',
-  cursor: 'pointer',
-};
+// const primaryButtonStyle: React.CSSProperties = {
+//   padding: '8px 12px',
+//   backgroundColor: '#2dd4bf',
+//   border: 'none',
+//   borderRadius: '4px',
+//   color: '#0f172a',
+//   fontSize: '12px',
+//   fontWeight: '600',
+//   cursor: 'pointer',
+// };
 
-const savedListStyle: React.CSSProperties = {
-  maxHeight: '200px',
-  overflowY: 'auto',
-};
+// const savedListStyle: React.CSSProperties = {
+//   maxHeight: '200px',
+//   overflowY: 'auto',
+// };
 
-const savedItemStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  padding: '8px',
-  backgroundColor: '#1e293b',
-  borderRadius: '4px',
-  marginBottom: '4px',
-};
+// const savedItemStyle: React.CSSProperties = {
+//   display: 'flex',
+//   justifyContent: 'space-between',
+//   alignItems: 'center',
+//   padding: '8px',
+//   backgroundColor: '#1e293b',
+//   borderRadius: '4px',
+//   marginBottom: '4px',
+// };
 
-const savedNameStyle: React.CSSProperties = {
-  fontSize: '12px',
-  color: '#e2e8f0',
-};
+// const savedNameStyle: React.CSSProperties = {
+//   fontSize: '12px',
+//   color: '#e2e8f0',
+// };
 
-const savedActionsStyle: React.CSSProperties = {
-  display: 'flex',
-  gap: '4px',
-};
+// const savedActionsStyle: React.CSSProperties = {
+//   display: 'flex',
+//   gap: '4px',
+// };
 
-const loadButtonStyle: React.CSSProperties = {
-  padding: '4px 8px',
-  backgroundColor: '#334155',
-  border: 'none',
-  borderRadius: '4px',
-  color: '#e2e8f0',
-  fontSize: '11px',
-  cursor: 'pointer',
-};
+// const loadButtonStyle: React.CSSProperties = {
+//   padding: '4px 8px',
+//   backgroundColor: '#334155',
+//   border: 'none',
+//   borderRadius: '4px',
+//   color: '#e2e8f0',
+//   fontSize: '11px',
+//   cursor: 'pointer',
+// };
 
-const deleteButtonStyle: React.CSSProperties = {
-  padding: '4px 8px',
-  backgroundColor: '#7f1d1d',
-  border: 'none',
-  borderRadius: '4px',
-  color: '#fecaca',
-  fontSize: '11px',
-  cursor: 'pointer',
-};
+// const deleteButtonStyle: React.CSSProperties = {
+//   padding: '4px 8px',
+//   backgroundColor: '#7f1d1d',
+//   border: 'none',
+//   borderRadius: '4px',
+//   color: '#fecaca',
+//   fontSize: '11px',
+//   cursor: 'pointer',
+// };
 
 const emptyTextStyle: React.CSSProperties = {
   fontSize: '12px',
